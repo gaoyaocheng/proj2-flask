@@ -2,7 +2,7 @@
 Just for learning Flask
 A starter project for using the Flask framework
 
-## Author : gaoyaocheng.
+## Author : Yaocheng Gao
 
 ## Feature
 
