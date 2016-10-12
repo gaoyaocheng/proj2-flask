@@ -12,7 +12,7 @@ from flask import url_for
 import json
 import logging
 
-# Date handling 
+# Date handling
 import arrow # Replacement for datetime, based on moment.js
 import datetime # But we still need time
 from dateutil import tz  # For interpreting local times
@@ -37,12 +37,22 @@ import CONFIG
 @app.route("/schedule")
 def index():
   app.logger.debug("Main page entry")
+  global baseday
+
   if 'schedule' not in flask.session:
       app.logger.debug("Processing raw schedule file")
       raw = open(CONFIG.schedule)
-      flask.session['schedule'] = pre.process(raw)
+      schedule, base_data = pre.process(raw)
 
-  return flask.render_template('syllabus.html')
+      flask.session['schedule'] = schedule
+      base = base_data.split('/')
+
+      baseday = datetime.datetime(int(base[2]), int(base[0]), int(base[1]))
+
+  today = datetime.datetime.utcnow()
+  cur_week = str(int(((today - baseday).days) / 7 + 1))
+
+  return flask.render_template('syllabus.html', now_week = cur_week)
 
 
 @app.errorhandler(404)
@@ -59,7 +69,7 @@ def page_not_found(error):
 
 @app.template_filter( 'fmtdate' )
 def format_arrow_date( date ):
-    try: 
+    try:
         normal = arrow.get( date )
         return normal.format("ddd MM/DD/YYYY")
     except:
@@ -67,14 +77,19 @@ def format_arrow_date( date ):
 
 
 #############
-#    
+#
 # Set up to run from cgi-bin script, from
 # gunicorn, or stand-alone.
 #
 app.secret_key = CONFIG.secret_key
 app.debug=CONFIG.DEBUG
-app.logger.setLevel(logging.DEBUG)
+app.logger.setLevel(logging.INFO)
 if __name__ == "__main__":
+    raw = open(CONFIG.schedule)
+    schedule, base_data = pre.process(raw)
+    base = base_data.split('/')
+    baseday = datetime.datetime(int(base[2]), int(base[0]), int(base[1]))
+
     print("Opening for global access on port {}".format(CONFIG.PORT))
     app.run(port=CONFIG.PORT, host="0.0.0.0")
 
